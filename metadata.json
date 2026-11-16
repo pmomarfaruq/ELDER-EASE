@@ -1,0 +1,6 @@
+{
+  "name": "ElderEase",
+  "description": "A Little Help. A Lot More Independence. A smart digital companion designed to make everyday life safer, healthier, and more connected for senior citizens.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

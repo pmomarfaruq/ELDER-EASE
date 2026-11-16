@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --ee-bg: #FAF7F2;
+  --ee-surface: #FFFFFF;
+  --ee-navy: #14274E;
+  --ee-navy-deep: #0E1C38;
+  --ee-gold: #D49425;
+  --ee-gold-dark: #B57913;
+  --ee-soft-blue: #EEF4FD;
+  --ee-soft-cream: #FEF8EA;
+  --ee-soft-rose: #FDF0F0;
+  --ee-soft-green: #EFF8F0;
+  --ee-soft-lavender: #F5F0FA;
+  --ee-soft-teal: #ECF8FA;
+  --ee-text: #14274E;
+  --ee-text-muted: #4A5568;
+  --ee-border: #E6DFD3;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+html.ee-large-text {
+  font-size: 19px;
+}
+
+body {
+  background-color: var(--ee-bg);
+  color: var(--ee-text);
+  font-family: 'DM Sans', 'Noto Sans Malayalam', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Malayalam', system-ui, -apple-system, sans-serif;
+}
+
+.font-numeric {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* High contrast accessibility mode */
+html.ee-high-contrast {
+  --ee-bg: #FFFFFF;
+  --ee-surface: #FFFFFF;
+  --ee-navy: #000000;
+  --ee-navy-deep: #000000;
+  --ee-gold: #9A5B00;
+  --ee-gold-dark: #7A4600;
+  --ee-soft-blue: #E6F0FF;
+  --ee-soft-cream: #FFF4D6;
+  --ee-soft-rose: #FFE5E5;
+  --ee-soft-green: #E3F7E6;
+  --ee-soft-lavender: #EFE6FF;
+  --ee-soft-teal: #E0F7FA;
+  --ee-text: #000000;
+  --ee-text-muted: #1F2937;
+  --ee-border: #111827;
+}
+
+html.ee-high-contrast body {
+  background-color: #FFFFFF;
+  color: #000000;
+}
+
+html.ee-high-contrast .ee-card {
+  border: 2px solid #000000 !important;
+  box-shadow: none !important;
+}
+
+html.ee-high-contrast input,
+html.ee-high-contrast select,
+html.ee-high-contrast textarea {
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+*:focus-visible {
+  outline: 3px solid #D49425;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
