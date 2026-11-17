@@ -81,6 +81,32 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </div>
 
         <div className="pt-4 border-t border-[#E6DFD3] space-y-3">
+          {/* Bilingual EN / മലയാളം Switcher in Sidebar */}
+          <div className="flex items-center justify-between gap-2 p-1 rounded-xl bg-[#FAF7F2] border border-[#E6DFD3]">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-colors min-h-[38px] ${
+                language === 'en'
+                  ? 'bg-[#14274E] text-white'
+                  : 'text-[#4A5568] hover:text-[#14274E]'
+              }`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('ml')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-colors min-h-[38px] ${
+                language === 'ml'
+                  ? 'bg-[#14274E] text-white'
+                  : 'text-[#4A5568] hover:text-[#14274E]'
+              }`}
+            >
+              മലയാളം
+            </button>
+          </div>
+
           {user && (
             <div className="px-2">
               <p className="text-sm font-bold text-[#14274E] truncate">{user.full_name}</p>
@@ -114,15 +140,35 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setLanguage(language === 'en' ? 'ml' : 'en')}
-                aria-label="Switch language"
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-[#E6DFD3] text-sm font-bold text-[#14274E] hover:bg-[#FEF8EA] transition-colors min-h-[42px] whitespace-nowrap"
+              <div
+                className="inline-flex items-center p-1 rounded-full bg-white border border-[#E6DFD3]"
+                role="group"
+                aria-label="Language switcher"
               >
-                <Globe className="w-4 h-4 text-[#14274E]" aria-hidden="true" />
-                <span>{language === 'en' ? 'EN' : 'ML'}</span>
-              </button>
+                <Globe className="w-4 h-4 text-[#D49425] ml-2 mr-1 hidden sm:block" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors min-h-[36px] whitespace-nowrap ${
+                    language === 'en'
+                      ? 'bg-[#14274E] text-white'
+                      : 'text-[#4A5568] hover:text-[#14274E]'
+                  }`}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('ml')}
+                  className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors min-h-[36px] whitespace-nowrap ${
+                    language === 'ml'
+                      ? 'bg-[#14274E] text-white'
+                      : 'text-[#4A5568] hover:text-[#14274E]'
+                  }`}
+                >
+                  മലയാളം
+                </button>
+              </div>
 
               <button
                 type="button"

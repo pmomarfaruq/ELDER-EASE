@@ -321,7 +321,7 @@ export const VoiceAssistantPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => speakText(responseText, voiceLang)}
-                aria-label="Replay spoken response"
+                aria-label={t.voice.replayVoice}
                 className="p-3 rounded-xl bg-[#EEF4FD] text-[#14274E] shrink-0"
               >
                 <Volume2 className="w-5 h-5" />

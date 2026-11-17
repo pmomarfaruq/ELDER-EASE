@@ -65,7 +65,7 @@ export const AppointmentsPage: React.FC = () => {
     e.preventDefault();
     setFormError('');
     if (!doctorName.trim() || !hospitalName.trim() || !appointmentDate || !appointmentTime) {
-      setFormError('Doctor name, hospital, date, and time are required.');
+      setFormError(t.appointments.errRequired);
       return;
     }
     try {
@@ -172,7 +172,7 @@ export const AppointmentsPage: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="py-12 text-center text-[#4A5568]">...</div>
+        <div className="py-12 text-center text-[#4A5568]">{t.loadingText}</div>
       ) : appointments.length === 0 ? (
         <div className="ee-card rounded-3xl bg-[#F5F0FA] border border-[#E6DFD3] p-10 text-center space-y-4">
           <CalendarClock className="w-12 h-12 text-[#14274E] mx-auto" aria-hidden="true" />
@@ -252,7 +252,7 @@ export const AppointmentsPage: React.FC = () => {
                     {appt.reminder_enabled === 1 && (
                       <span className="inline-flex items-center gap-1 font-semibold text-[#14274E]">
                         <Bell className="w-4 h-4 text-[#D49425]" aria-hidden="true" />
-                        <span>Reminder On</span>
+                        <span>{t.appointments.reminderOn}</span>
                       </span>
                     )}
                   </div>

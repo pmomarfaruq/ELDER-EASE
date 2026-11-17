@@ -70,7 +70,7 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password) {
-      setError('Please enter your email address and password.');
+      setError(t.auth.errEmailPassword);
       return;
     }
     setSubmitting(true);
@@ -183,19 +183,19 @@ export const SignupPage: React.FC = () => {
     setError('');
 
     if (fullName.trim().length < 2) {
-      setError('Please enter your full name (at least 2 characters).');
+      setError(t.auth.errFullName);
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Please enter a valid email address.');
+      setError(t.auth.errEmailInvalid);
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setError(t.auth.errPasswordMin);
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t.auth.errPasswordMatch);
       return;
     }
 
@@ -362,11 +362,11 @@ export const ForgotPasswordPage: React.FC = () => {
     e.preventDefault();
     setError('');
     if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters.');
+      setError(t.auth.errPasswordMin);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t.auth.errPasswordMatch);
       return;
     }
     setSubmitting(true);
@@ -508,7 +508,7 @@ export const ForgotPasswordPage: React.FC = () => {
         <div className="space-y-6 text-center py-4">
           <CheckCircle2 className="w-14 h-14 text-[#2F855A] mx-auto" aria-hidden="true" />
           <p className="text-lg font-semibold text-[#14274E]">
-            Your password has been updated.
+            {t.auth.passwordUpdated}
           </p>
           <Link
             to="/login"

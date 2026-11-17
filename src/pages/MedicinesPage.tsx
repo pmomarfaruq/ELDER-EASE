@@ -183,7 +183,7 @@ export const MedicinesPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-[#4A5568]">...</div>
+        <div className="py-12 text-center text-[#4A5568]">{t.loadingText}</div>
       ) : activeTab === 'today' ? (
         reminders.length === 0 ? (
           <div className="ee-card rounded-3xl bg-[#FEF8EA] border border-[#E6DFD3] p-10 text-center space-y-4">
@@ -215,7 +215,14 @@ export const MedicinesPage: React.FC = () => {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-numeric text-sm font-bold text-[#B57913]">
-                        {rem.schedule_time} · {rem.frequency}
+                        {rem.schedule_time} ·{' '}
+                        {rem.frequency === 'daily'
+                          ? t.medicines.freqDaily
+                          : rem.frequency === 'twice_daily'
+                          ? t.medicines.freqTwice
+                          : rem.frequency === 'weekly'
+                          ? t.medicines.freqWeekly
+                          : t.medicines.freqAsNeeded}
                       </p>
                       <h2 className="mt-1 font-display text-2xl font-bold text-[#14274E]">
                         {rem.medicine_name}

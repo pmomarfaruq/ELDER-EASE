@@ -110,7 +110,7 @@ export const FamilyPage: React.FC = () => {
     e.preventDefault();
     setFormError('');
     if (!name.trim() || !relationship.trim() || !phone.trim()) {
-      setFormError('Name, relationship, and phone number are required.');
+      setFormError(t.family.errRequired);
       return;
     }
     try {
@@ -211,7 +211,7 @@ export const FamilyPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-[#4A5568]">...</div>
+        <div className="py-12 text-center text-[#4A5568]">{t.loadingText}</div>
       ) : members.length === 0 ? (
         <div className="ee-card rounded-3xl bg-[#EFF8F0] border border-[#E6DFD3] p-10 text-center space-y-4">
           <Users className="w-12 h-12 text-[#2F855A] mx-auto" aria-hidden="true" />
@@ -562,15 +562,15 @@ export const FamilyPage: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E6DFD3]">
                 <p className="font-bold text-[#14274E] mb-1">{t.family.shareHealth}</p>
                 {previewData.health === null ? (
-                  <p>Not shared (permission off)</p>
+                  <p>{t.family.notShared}</p>
                 ) : previewData.health.length === 0 ? (
                   <p>{t.health.emptyState}</p>
                 ) : (
                   previewData.health.map((h) => (
                     <p key={h.id} className="font-numeric">
-                      {h.systolic ? `BP ${h.systolic}/${h.diastolic} ` : ''}
-                      {h.blood_sugar ? `Sugar ${h.blood_sugar} ` : ''}
-                      {h.weight_kg ? `Weight ${h.weight_kg}kg` : ''}
+                      {h.systolic ? `${t.health.bpShort} ${h.systolic}/${h.diastolic} ` : ''}
+                      {h.blood_sugar ? `${t.health.sugarShort} ${h.blood_sugar} ` : ''}
+                      {h.weight_kg ? `${t.health.weightShort} ${h.weight_kg} kg` : ''}
                     </p>
                   ))
                 )}
@@ -579,7 +579,7 @@ export const FamilyPage: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E6DFD3]">
                 <p className="font-bold text-[#14274E] mb-1">{t.family.shareMedicines}</p>
                 {previewData.medicines === null ? (
-                  <p>Not shared (permission off)</p>
+                  <p>{t.family.notShared}</p>
                 ) : previewData.medicines.length === 0 ? (
                   <p>{t.medicines.emptyState}</p>
                 ) : (
@@ -594,7 +594,7 @@ export const FamilyPage: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E6DFD3]">
                 <p className="font-bold text-[#14274E] mb-1">{t.family.shareAppointments}</p>
                 {previewData.appointments === null ? (
-                  <p>Not shared (permission off)</p>
+                  <p>{t.family.notShared}</p>
                 ) : previewData.appointments.length === 0 ? (
                   <p>{t.appointments.emptyState}</p>
                 ) : (
@@ -612,7 +612,7 @@ export const FamilyPage: React.FC = () => {
                 onClick={() => setPreviewData(null)}
                 className="px-6 py-3 rounded-xl bg-[#14274E] text-white font-bold min-h-[48px]"
               >
-                OK
+                {t.okButton}
               </button>
             </div>
           </div>

@@ -58,7 +58,7 @@ export const SettingsPage: React.FC = () => {
           >
             <p className="font-display text-xl font-bold">English</p>
             <p className={`text-sm ${language === 'en' ? 'text-white/80' : 'text-[#4A5568]'}`}>
-              Display all labels and voice commands in English
+              {t.settings.englishDesc}
             </p>
           </button>
 
@@ -73,7 +73,7 @@ export const SettingsPage: React.FC = () => {
           >
             <p className="font-display text-xl font-bold">മലയാളം (Malayalam)</p>
             <p className={`text-sm ${language === 'ml' ? 'text-white/80' : 'text-[#4A5568]'}`}>
-              എല്ലാ വിവരങ്ങളും മലയാളത്തിൽ കാണുക
+              {t.settings.malayalamDesc}
             </p>
           </button>
         </div>

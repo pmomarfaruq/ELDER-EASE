@@ -261,7 +261,7 @@ export const HealthPage: React.FC = () => {
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
+                  placeholder={t.health.searchPlaceholder}
                   className="pl-9 pr-4 py-2 rounded-xl border border-[#E6DFD3] bg-[#FAF7F2] text-sm min-h-[40px]"
                 />
               </div>
@@ -292,7 +292,7 @@ export const HealthPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="py-10 text-center text-[#4A5568]">...</div>
+          <div className="py-10 text-center text-[#4A5568]">{t.loadingText}</div>
         ) : records.length === 0 ? (
           <div className="rounded-2xl bg-[#EEF4FD] border border-[#E6DFD3] p-10 text-center space-y-4">
             <HeartPulse className="w-12 h-12 text-[#14274E] mx-auto" aria-hidden="true" />
@@ -337,27 +337,27 @@ export const HealthPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-5 pt-1">
                     {rec.systolic !== null && rec.diastolic !== null && (
                       <div className="font-numeric text-lg font-bold text-[#14274E]">
-                        BP: {rec.systolic}/{rec.diastolic}{' '}
+                        {t.health.bpShort}: {rec.systolic}/{rec.diastolic}{' '}
                         <span className="text-xs font-sans font-normal text-[#4A5568]">mmHg</span>
                       </div>
                     )}
                     {rec.blood_sugar !== null && (
                       <div className="font-numeric text-lg font-bold text-[#0E7490]">
-                        Sugar: {rec.blood_sugar}{' '}
+                        {t.health.sugarShort}: {rec.blood_sugar}{' '}
                         <span className="text-xs font-sans font-normal text-[#4A5568]">
-                          mg/dL ({rec.sugar_context})
+                          mg/dL ({rec.sugar_context === 'fasting' ? t.health.fasting : rec.sugar_context === 'post_meal' ? t.health.postMeal : t.health.random})
                         </span>
                       </div>
                     )}
                     {rec.heart_rate !== null && (
                       <div className="font-numeric text-lg font-bold text-[#9B2C2C]">
-                        HR: {rec.heart_rate}{' '}
+                        {t.health.hrShort}: {rec.heart_rate}{' '}
                         <span className="text-xs font-sans font-normal text-[#4A5568]">bpm</span>
                       </div>
                     )}
                     {rec.weight_kg !== null && (
                       <div className="font-numeric text-lg font-bold text-[#2F855A]">
-                        Weight: {rec.weight_kg}{' '}
+                        {t.health.weightShort}: {rec.weight_kg}{' '}
                         <span className="text-xs font-sans font-normal text-[#4A5568]">kg</span>
                       </div>
                     )}

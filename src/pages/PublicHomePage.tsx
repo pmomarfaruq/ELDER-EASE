@@ -157,7 +157,7 @@ export const PublicHomePage: React.FC = () => {
                 }`}
               >
                 <Eye className="w-4 h-4" aria-hidden="true" />
-                <span>Contrast</span>
+                <span>{t.publicHome.contrastBtn}</span>
               </button>
             </div>
           </div>

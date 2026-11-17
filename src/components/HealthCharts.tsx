@@ -139,7 +139,15 @@ export const HealthCharts: React.FC<HealthChartsProps> = ({ records }) => {
                 )}
                 {metric === 'sugar' && (
                   <p className="font-numeric text-xl font-bold text-[#14274E]">
-                    {activePoint.blood_sugar} <span className="text-sm font-sans font-normal text-[#4A5568]">mg/dL · {activePoint.sugar_context}</span>
+                    {activePoint.blood_sugar}{' '}
+                    <span className="text-sm font-sans font-normal text-[#4A5568]">
+                      mg/dL ·{' '}
+                      {activePoint.sugar_context === 'fasting'
+                        ? t.health.fasting
+                        : activePoint.sugar_context === 'post_meal'
+                        ? t.health.postMeal
+                        : t.health.random}
+                    </span>
                   </p>
                 )}
                 {metric === 'weight' && (
@@ -149,7 +157,7 @@ export const HealthCharts: React.FC<HealthChartsProps> = ({ records }) => {
                 )}
                 {activePoint.heart_rate !== null && (
                   <p className="font-numeric text-sm font-semibold text-[#4A5568]">
-                    HR: {activePoint.heart_rate} bpm
+                    {t.health.hrShort}: {activePoint.heart_rate} bpm
                   </p>
                 )}
               </div>

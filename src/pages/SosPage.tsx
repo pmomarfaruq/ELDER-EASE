@@ -9,13 +9,26 @@ import {
   CheckCircle2,
   AlertTriangle,
   ShieldAlert,
+  ArrowRight,
+  ArrowLeft,
+  Navigation,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 import { EmergencyContact, SosAlert } from '../types';
+import { SosLocationMap } from '../components/SosLocationMap';
+
+interface SimulatedDelivery {
+  contactId: string;
+  name: string;
+  phone: string;
+  relationship: string;
+  status: 'pending' | 'simulating' | 'sent';
+}
 
 export const SosPage: React.FC = () => {
-  const { language, t } = useAuth();
+  const { user, language, t } = useAuth();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [alerts, setAlerts] = useState<SosAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,14 +43,21 @@ export const SosPage: React.FC = () => {
   const [isPrimary, setIsPrimary] = useState(false);
   const [contactError, setContactError] = useState('');
 
-  // SOS Confirmation Modal
+  // Multi-Step SOS Confirmation Modal (Step 1 -> Step 2 -> Step 3)
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [shareLocation, setShareLocation] = useState(false);
+  const [sosStep, setSosStep] = useState<1 | 2 | 3>(1);
+  const [shareLocation, setShareLocation] = useState(true);
   const [locationState, setLocationState] = useState<'idle' | 'loading' | 'ready' | 'denied'>('idle');
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number | null } | null>(
+    null
+  );
   const [sosNote, setSosNote] = useState('');
+  const [simulatedDeliveries, setSimulatedDeliveries] = useState<SimulatedDelivery[]>([]);
+  const [simulating, setSimulating] = useState(false);
+  const [simulationCompleted, setSimulationCompleted] = useState(false);
   const [sendingSos, setSendingSos] = useState(false);
   const [latestDispatched, setLatestDispatched] = useState<SosAlert | null>(null);
+  const [expandedAlertMapId, setExpandedAlertMapId] = useState<string | null>(null);
 
   const loadSos = async () => {
     try {
@@ -79,7 +99,7 @@ export const SosPage: React.FC = () => {
     e.preventDefault();
     setContactError('');
     if (!name.trim() || !relationship.trim() || !phone.trim()) {
-      setContactError('Name, relationship, and phone number are required.');
+      setContactError(`${t.sos.contactName}, ${t.sos.relationship}, ${t.sos.phone}`);
       return;
     }
     try {
@@ -113,31 +133,20 @@ export const SosPage: React.FC = () => {
     setContacts((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const openSosConfirmation = () => {
-    setShareLocation(false);
-    setLocationState('idle');
-    setCoords(null);
-    setSosNote('');
-    setConfirmOpen(true);
-  };
-
-  const handleToggleLocation = (checked: boolean) => {
-    setShareLocation(checked);
-    if (!checked) {
-      setLocationState('idle');
+  const captureGeolocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationState('denied');
       setCoords(null);
       return;
     }
-    if (!('geolocation' in navigator)) {
-      setLocationState('denied');
-      return;
-    }
+    setShareLocation(true);
     setLocationState('loading');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({
           lat: Number(pos.coords.latitude.toFixed(6)),
           lng: Number(pos.coords.longitude.toFixed(6)),
+          accuracy: typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null,
         });
         setLocationState('ready');
       },
@@ -149,19 +158,82 @@ export const SosPage: React.FC = () => {
     );
   };
 
+  const openSosConfirmation = () => {
+    setSosStep(1);
+    setShareLocation(true);
+    setLocationState('idle');
+    setCoords(null);
+    setSosNote('');
+    setSimulationCompleted(false);
+    setSimulating(false);
+    setSimulatedDeliveries(
+      contacts.map((c) => ({
+        contactId: c.id,
+        name: c.name,
+        phone: c.phone,
+        relationship: c.relationship,
+        status: 'pending',
+      }))
+    );
+    setConfirmOpen(true);
+    // Automatically initiate geolocation capture on Step 1
+    captureGeolocation();
+  };
+
+  const handleToggleConsentLocation = (checked: boolean) => {
+    setShareLocation(checked);
+    if (checked) {
+      captureGeolocation();
+    } else {
+      setLocationState('idle');
+      setCoords(null);
+    }
+  };
+
+  const handleSimulateContactDispatch = () => {
+    if (contacts.length === 0) {
+      setSimulationCompleted(true);
+      setSosStep(3);
+      return;
+    }
+
+    setSimulating(true);
+    setSimulatedDeliveries(
+      contacts.map((c) => ({
+        contactId: c.id,
+        name: c.name,
+        phone: c.phone,
+        relationship: c.relationship,
+        status: 'simulating',
+      }))
+    );
+
+    contacts.forEach((c, idx) => {
+      setTimeout(() => {
+        setSimulatedDeliveries((prev) =>
+          prev.map((item) =>
+            item.contactId === c.id ? { ...item, status: 'sent' } : item
+          )
+        );
+        if (idx === contacts.length - 1) {
+          setSimulating(false);
+          setSimulationCompleted(true);
+        }
+      }, 450 * (idx + 1));
+    });
+  };
+
   const handleConfirmSendSos = async () => {
     setSendingSos(true);
     try {
-      const locationLabel =
-        shareLocation && coords
-          ? `${coords.lat}, ${coords.lng}`
-          : '';
+      const hasCoords = Boolean(shareLocation && coords);
+      const locationLabel = hasCoords && coords ? `${coords.lat}, ${coords.lng}` : '';
       const data = await apiFetch<{ alert: SosAlert }>('/api/sos/trigger', {
         method: 'POST',
         body: JSON.stringify({
-          location_shared: Boolean(shareLocation && coords),
-          latitude: coords ? coords.lat : null,
-          longitude: coords ? coords.lng : null,
+          location_shared: hasCoords,
+          latitude: hasCoords && coords ? coords.lat : null,
+          longitude: hasCoords && coords ? coords.lng : null,
           location_label: locationLabel,
           notes: sosNote.trim(),
         }),
@@ -226,11 +298,11 @@ export const SosPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Post-Dispatch Confirmation Banner */}
+      {/* Post-Dispatch Confirmation Banner with Google Maps Pin */}
       {latestDispatched && (
         <section
           role="status"
-          className="ee-card rounded-3xl bg-[#EFF8F0] border border-[#2F855A]/40 p-6 space-y-3"
+          className="ee-card rounded-3xl bg-[#EFF8F0] border border-[#2F855A]/40 p-6 space-y-4"
         >
           <div className="flex items-center gap-2.5 text-[#276749]">
             <CheckCircle2 className="w-6 h-6 shrink-0" aria-hidden="true" />
@@ -242,6 +314,17 @@ export const SosPage: React.FC = () => {
               ? ` · GPS: ${latestDispatched.location_label}`
               : ''}
           </p>
+
+          {latestDispatched.location_shared === 1 &&
+            latestDispatched.latitude !== null &&
+            latestDispatched.longitude !== null && (
+              <SosLocationMap
+                lat={latestDispatched.latitude}
+                lng={latestDispatched.longitude}
+                label={user?.full_name}
+              />
+            )}
+
           {contacts.length > 0 && (
             <div className="flex flex-wrap gap-3 pt-1">
               {contacts.map((c) => (
@@ -268,7 +351,7 @@ export const SosPage: React.FC = () => {
         </h2>
 
         {loading ? (
-          <div className="py-8 text-center text-[#4A5568]">...</div>
+          <div className="py-8 text-center text-[#4A5568]">{t.loadingText}</div>
         ) : contacts.length === 0 ? (
           <div className="rounded-2xl bg-[#FAF7F2] border border-[#E6DFD3] p-8 text-center space-y-4">
             <ShieldAlert className="w-11 h-11 text-[#C53030] mx-auto" aria-hidden="true" />
@@ -364,40 +447,62 @@ export const SosPage: React.FC = () => {
               } catch {
                 notifiedList = [];
               }
+              const hasCoords =
+                al.location_shared === 1 && al.latitude !== null && al.longitude !== null;
+              const isMapOpen = expandedAlertMapId === al.id;
               return (
-                <div
-                  key={al.id}
-                  className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <p className="font-numeric text-sm font-bold text-[#14274E]">
-                      {new Date(al.triggered_at).toLocaleString(locale)}
-                      <span aria-hidden="true"> · </span>
-                      <span className={al.status === 'resolved' ? 'text-[#2F855A]' : 'text-[#C53030]'}>
-                        {al.status === 'resolved' ? t.sos.resolved : t.sos.activeAlert}
-                      </span>
-                    </p>
-                    <p className="text-sm text-[#4A5568]">
-                      {notifiedList.length > 0
-                        ? notifiedList.map((c) => `${c.name} (${c.phone})`).join(', ')
-                        : t.sos.noContactsWarning}
-                    </p>
-                    {al.location_shared === 1 && al.location_label && (
-                      <p className="text-sm font-numeric text-[#0E7490] inline-flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4" aria-hidden="true" />
-                        <span>{al.location_label}</span>
+                <div key={al.id} className="py-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-numeric text-sm font-bold text-[#14274E]">
+                        {new Date(al.triggered_at).toLocaleString(locale)}
+                        <span aria-hidden="true"> · </span>
+                        <span
+                          className={
+                            al.status === 'resolved' ? 'text-[#2F855A]' : 'text-[#C53030]'
+                          }
+                        >
+                          {al.status === 'resolved' ? t.sos.resolved : t.sos.activeAlert}
+                        </span>
                       </p>
+                      <p className="text-sm text-[#4A5568]">
+                        {notifiedList.length > 0
+                          ? notifiedList.map((c) => `${c.name} (${c.phone})`).join(', ')
+                          : t.sos.noContactsWarning}
+                      </p>
+                      {hasCoords && al.location_label && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedAlertMapId(isMapOpen ? null : al.id)
+                          }
+                          className="text-sm font-numeric text-[#0E7490] inline-flex items-center gap-1.5 hover:underline font-semibold"
+                        >
+                          <MapPin className="w-4 h-4" aria-hidden="true" />
+                          <span>
+                            {al.location_label} · {t.sos.mapLocationPreview}
+                          </span>
+                        </button>
+                      )}
+                      {al.notes && <p className="text-sm text-[#14274E]">{al.notes}</p>}
+                    </div>
+                    {al.status !== 'resolved' && (
+                      <button
+                        type="button"
+                        onClick={() => handleResolveAlert(al.id)}
+                        className="px-4 py-2.5 rounded-xl bg-[#EFF8F0] border border-[#2F855A]/30 text-[#276749] font-bold text-sm min-h-[42px] shrink-0"
+                      >
+                        {t.sos.markResolved}
+                      </button>
                     )}
-                    {al.notes && <p className="text-sm text-[#14274E]">{al.notes}</p>}
                   </div>
-                  {al.status !== 'resolved' && (
-                    <button
-                      type="button"
-                      onClick={() => handleResolveAlert(al.id)}
-                      className="px-4 py-2.5 rounded-xl bg-[#EFF8F0] border border-[#2F855A]/30 text-[#276749] font-bold text-sm min-h-[42px] shrink-0"
-                    >
-                      {t.sos.markResolved}
-                    </button>
+
+                  {hasCoords && isMapOpen && al.latitude !== null && al.longitude !== null && (
+                    <SosLocationMap
+                      lat={al.latitude}
+                      lng={al.longitude}
+                      label={user?.full_name}
+                    />
                   )}
                 </div>
               );
@@ -406,7 +511,7 @@ export const SosPage: React.FC = () => {
         )}
       </section>
 
-      {/* SOS Confirmation Modal */}
+      {/* Multi-Step Emergency SOS Confirmation Dialog */}
       {confirmOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto"
@@ -414,104 +519,288 @@ export const SosPage: React.FC = () => {
           aria-modal="true"
           aria-labelledby="sos-confirm-heading"
         >
-          <div className="ee-card bg-white rounded-3xl border-2 border-[#C53030] max-w-lg w-full p-6 sm:p-8 space-y-5 my-8">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-8 h-8 text-[#C53030] shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <h2 id="sos-confirm-heading" className="font-display text-2xl font-extrabold text-[#14274E]">
-                  {t.sos.confirmTitle}
-                </h2>
-                <p className="mt-1 text-base text-[#4A5568]">{t.sos.confirmWarning}</p>
+          <div className="ee-card bg-white rounded-3xl border-2 border-[#C53030] max-w-xl w-full p-6 sm:p-8 space-y-5 my-8">
+            {/* Dialog Header + Step Indicator */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-8 h-8 text-[#C53030] shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p className="text-xs font-bold text-[#C53030]">
+                    {t.sos.stepLabel} {sosStep} {t.sos.ofLabel} 3
+                  </p>
+                  <h2
+                    id="sos-confirm-heading"
+                    className="font-display text-2xl font-extrabold text-[#14274E]"
+                  >
+                    {sosStep === 1
+                      ? t.sos.step1Title
+                      : sosStep === 2
+                      ? t.sos.step2Title
+                      : t.sos.step3Title}
+                  </h2>
+                  <p className="mt-1 text-sm text-[#4A5568]">{t.sos.confirmWarning}</p>
+                </div>
               </div>
             </div>
 
-            {/* Designated contacts preview */}
-            <div className="rounded-2xl bg-[#FAF7F2] border border-[#E6DFD3] p-4 space-y-2">
-              <p className="text-sm font-bold text-[#14274E]">{t.sos.designatedListLabel}</p>
-              {contacts.length === 0 ? (
-                <p className="text-sm text-[#9B2C2C]">{t.sos.noContactsWarning}</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {contacts.map((c) => (
-                    <li key={c.id} className="text-base font-medium text-[#14274E] flex justify-between gap-2">
-                      <span>
-                        {c.name} ({c.relationship})
-                      </span>
-                      <span className="font-numeric font-bold">{c.phone}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Optional GPS location sharing with permission */}
-            <div className="rounded-2xl bg-[#EEF4FD] border border-[#E6DFD3] p-4 space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={shareLocation}
-                  onChange={(e) => handleToggleLocation(e.target.checked)}
-                  className="mt-1 w-5 h-5 accent-[#14274E]"
+            {/* Step Progress Bar */}
+            <div className="grid grid-cols-3 gap-2" aria-hidden="true">
+              {[1, 2, 3].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`h-2 rounded-full transition-colors ${
+                    sosStep >= stepNum ? 'bg-[#C53030]' : 'bg-[#E6DFD3]'
+                  }`}
                 />
-                <span className="text-base font-semibold text-[#14274E]">
-                  {t.sos.shareLocationLabel}
-                </span>
-              </label>
-
-              {locationState === 'loading' && (
-                <p className="text-sm text-[#4A5568] pl-8">{t.sos.fetchingLocation}</p>
-              )}
-              {locationState === 'ready' && coords && (
-                <p className="text-sm font-numeric font-bold text-[#2F855A] pl-8 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" aria-hidden="true" />
-                  <span>
-                    {t.sos.locationReady}: {coords.lat}, {coords.lng}
-                  </span>
-                </p>
-              )}
-              {locationState === 'denied' && (
-                <p className="text-sm text-[#9B2C2C] pl-8">{t.sos.locationDenied}</p>
-              )}
+              ))}
             </div>
 
-            <div>
-              <label htmlFor="sos-note-input" className="block text-sm font-semibold text-[#14274E] mb-1">
-                {t.sos.sosNoteLabel}
-              </label>
-              <input
-                id="sos-note-input"
-                type="text"
-                value={sosNote}
-                onChange={(e) => setSosNote(e.target.value)}
-                placeholder={t.sos.sosNotePlaceholder}
-                className="w-full px-4 py-3 rounded-xl border border-[#E6DFD3] bg-[#FAF7F2]"
-              />
-            </div>
+            {/* STEP 1: Geolocation Capture + Google Maps Preview */}
+            {sosStep === 1 && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-[#EEF4FD] border border-[#E6DFD3] p-4 space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={shareLocation}
+                      onChange={(e) => handleToggleConsentLocation(e.target.checked)}
+                      className="mt-1 w-5 h-5 accent-[#14274E]"
+                    />
+                    <span className="text-base font-semibold text-[#14274E]">
+                      {t.sos.shareLocationLabel}
+                    </span>
+                  </label>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(false)}
-                className="px-6 py-3.5 rounded-xl border border-[#E6DFD3] font-bold text-[#14274E] min-h-[50px]"
-              >
-                {t.sos.cancelBtn}
-              </button>
-              <button
-                type="button"
-                disabled={sendingSos}
-                onClick={handleConfirmSendSos}
-                className="px-6 py-3.5 rounded-xl bg-[#C53030] hover:bg-[#9B2C2C] text-white font-extrabold text-base min-h-[50px]"
-              >
-                {sendingSos ? '...' : t.sos.confirmSendBtn}
-              </button>
-            </div>
+                  <div className="flex flex-wrap items-center gap-3 pl-8">
+                    <button
+                      type="button"
+                      onClick={captureGeolocation}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#14274E] text-white text-sm font-bold min-h-[44px]"
+                    >
+                      <Navigation className="w-4 h-4" aria-hidden="true" />
+                      <span>
+                        {locationState === 'ready'
+                          ? t.sos.recaptureLocationBtn
+                          : t.sos.captureLocationBtn}
+                      </span>
+                    </button>
+                  </div>
+
+                  {locationState === 'loading' && (
+                    <p className="text-sm text-[#4A5568] pl-8">{t.sos.fetchingLocation}</p>
+                  )}
+                  {locationState === 'ready' && coords && (
+                    <p className="text-sm font-numeric font-bold text-[#2F855A] pl-8 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4" aria-hidden="true" />
+                      <span>
+                        {t.sos.locationReady}: {coords.lat}, {coords.lng}
+                      </span>
+                    </p>
+                  )}
+                  {locationState === 'denied' && (
+                    <p className="text-sm text-[#9B2C2C] pl-8">{t.sos.locationDenied}</p>
+                  )}
+                </div>
+
+                {shareLocation && coords && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-[#14274E]">
+                      {t.sos.mapLocationPreview}
+                    </p>
+                    <SosLocationMap
+                      lat={coords.lat}
+                      lng={coords.lng}
+                      accuracyMeters={coords.accuracy}
+                      label={user?.full_name}
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmOpen(false)}
+                    className="px-5 py-3 rounded-xl border border-[#E6DFD3] font-bold text-[#14274E] min-h-[48px]"
+                  >
+                    {t.sos.cancelBtn}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSosStep(2)}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#14274E] text-white font-bold min-h-[48px]"
+                  >
+                    <span>
+                      {shareLocation && coords
+                        ? t.sos.nextToStep2Btn
+                        : t.sos.skipLocationBtn}
+                    </span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Review Contacts, Situation Note & Simulate Alert Dispatch */}
+            {sosStep === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="sos-note-input"
+                    className="block text-sm font-semibold text-[#14274E] mb-1"
+                  >
+                    {t.sos.sosNoteLabel}
+                  </label>
+                  <input
+                    id="sos-note-input"
+                    type="text"
+                    value={sosNote}
+                    onChange={(e) => setSosNote(e.target.value)}
+                    placeholder={t.sos.sosNotePlaceholder}
+                    className="w-full px-4 py-3 rounded-xl border border-[#E6DFD3] bg-[#FAF7F2]"
+                  />
+                </div>
+
+                <div className="rounded-2xl bg-[#FAF7F2] border border-[#E6DFD3] p-4 space-y-3">
+                  <p className="text-sm font-bold text-[#14274E]">
+                    {t.sos.designatedListLabel}
+                  </p>
+                  {simulatedDeliveries.length === 0 ? (
+                    <p className="text-sm text-[#9B2C2C]">{t.sos.noContactsWarning}</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {simulatedDeliveries.map((d) => (
+                        <li
+                          key={d.contactId}
+                          className="p-3 rounded-xl bg-white border border-[#E6DFD3] flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <div>
+                            <p className="font-bold text-[#14274E]">
+                              {d.name} ({d.relationship})
+                            </p>
+                            <p className="font-numeric text-sm text-[#4A5568]">{d.phone}</p>
+                          </div>
+                          <span
+                            className={`text-xs font-bold ${
+                              d.status === 'sent'
+                                ? 'text-[#2F855A]'
+                                : d.status === 'simulating'
+                                ? 'text-[#B57913]'
+                                : 'text-[#4A5568]'
+                            }`}
+                          >
+                            {d.status === 'sent'
+                              ? t.sos.simulatedReadyLabel
+                              : d.status === 'simulating'
+                              ? '...'
+                              : t.sos.pendingLabel}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {!simulationCompleted && contacts.length > 0 && (
+                    <button
+                      type="button"
+                      disabled={simulating}
+                      onClick={handleSimulateContactDispatch}
+                      className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#D49425] text-[#0E1C38] font-bold min-h-[48px]"
+                    >
+                      <Send className="w-4 h-4" aria-hidden="true" />
+                      <span>
+                        {simulating ? t.sos.simulatingDispatch : t.sos.simulateAlertBtn}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSosStep(1)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-[#E6DFD3] font-bold text-[#14274E] min-h-[48px]"
+                  >
+                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    <span>{t.sos.backBtn}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={contacts.length > 0 && !simulationCompleted}
+                    onClick={() => setSosStep(3)}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#14274E] text-white font-bold disabled:opacity-50 min-h-[48px]"
+                  >
+                    <span>{t.sos.step3Title}</span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Final Confirmation Before Firing Final Action */}
+            {sosStep === 3 && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-[#EFF8F0] border border-[#2F855A]/40 p-4 space-y-2">
+                  <p className="text-sm font-bold text-[#276749] flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                    <span>{t.sos.simulatedReadyLabel}</span>
+                  </p>
+                  {contacts.length > 0 ? (
+                    <p className="text-sm text-[#14274E]">
+                      {contacts.map((c) => `${c.name} (${c.phone})`).join(' · ')}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-[#9B2C2C]">{t.sos.noContactsWarning}</p>
+                  )}
+                  {shareLocation && coords && (
+                    <p className="text-sm font-numeric text-[#0E7490]">
+                      GPS: {coords.lat}, {coords.lng}
+                    </p>
+                  )}
+                  {sosNote.trim() && (
+                    <p className="text-sm text-[#14274E]">{sosNote.trim()}</p>
+                  )}
+                </div>
+
+                {shareLocation && coords && (
+                  <SosLocationMap
+                    lat={coords.lat}
+                    lng={coords.lng}
+                    accuracyMeters={coords.accuracy}
+                    label={user?.full_name}
+                  />
+                )}
+
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSosStep(2)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-[#E6DFD3] font-bold text-[#14274E] min-h-[48px]"
+                  >
+                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    <span>{t.sos.backBtn}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingSos}
+                    onClick={handleConfirmSendSos}
+                    className="px-6 py-3.5 rounded-xl bg-[#C53030] hover:bg-[#9B2C2C] text-white font-extrabold text-base min-h-[52px]"
+                  >
+                    {sendingSos ? '...' : t.sos.finalConfirmBtn}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Add / Edit Contact Modal */}
       {contactModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="ee-card bg-white rounded-3xl border border-[#E6DFD3] max-w-lg w-full p-6 sm:p-8 space-y-5">
             <h2 className="font-display text-2xl font-bold text-[#14274E]">
               {editingId ? t.sos.editContact : t.sos.addContact}
